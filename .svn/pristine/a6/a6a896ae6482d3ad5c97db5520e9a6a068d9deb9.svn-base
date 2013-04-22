@@ -1,0 +1,21 @@
+package emulator;
+
+import poolsync.PoolObject;
+
+public class Emulator extends PoolObject {
+
+	@Override
+	public void run() {
+		
+	}
+
+	@Override
+	public void reset() {
+		
+	}
+
+	@Override
+	public boolean isDone() {
+		return false;
+	}
+}

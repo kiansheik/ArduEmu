@@ -1,0 +1,10 @@
+package poolsync;
+
+public abstract class PoolOutput {
+	public abstract void accept(String s);
+	public abstract void accept(int i);
+	public abstract void accept(long i);
+	public abstract void accept(double d);
+	
+	public abstract void dump();
+}

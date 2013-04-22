@@ -1,0 +1,380 @@
+package emulator.processor;
+
+import emulator.memory.MemData;
+import emulator.memory.MemEEProm;
+import emulator.memory.MemProg;
+
+public class Processor {
+
+    /**
+     * Data memory
+     * 0x0000 - 0x001f -> registers
+     * 0x0020 - 0x005f -> 64 I/O registers
+     * 0x0060 - 0x00ff -> 160 external I/O registers
+     * 0x0100 - 0x02ff -> 512 bytes of internal SRAM
+     */
+    private final MemProg memProg = new MemProg();
+    private final MemData memData = new MemData();
+    private final MemEEProm memEEProm = new MemEEProm();
+    private final byte[] EEPROM = new byte[256];
+    private int PC = 0;
+    private long CYCLES = 0L;
+    private static final short RAMEND = 0x02ff;
+    public static final int SPL = 0x5d;
+    public static final int SPH = 0x5e;
+    private static final int LByteMask = 0x00ff;
+    private static final int HByteMask = 0xff00;
+    public static final int X_LOW = 0x1A;
+    public static final int X_HIGH = 0x1B;
+    public static final int Y_LOW = 0x1C;
+    public static final int Y_HIGH = 0x1D;
+    public static final int Z_LOW = 0x1E;
+    public static final int Z_HIGH = 0x1F;
+    public Processor() {
+        reset();
+    }
+    private void reset() {
+        writeSP(RAMEND);
+        CYCLES = 0L;
+        PC = 0;
+        resetSReg();
+    }
+    public void resetSReg() {
+        for (StatusRegister r : StatusRegister.values())
+            r.write(true, memData);
+    }
+    public void invokeInst(short inst) {
+        // Cat 0
+        // ---- ---- ---- ----
+        int maskInt = (0xffff & inst);
+OUTER:  switch (maskInt) {
+            case 0x9519:
+                eicall(inst);
+                break;               // 1001 0101 0001 1001 | EICALL
+            case 0x9419:
+                eijmp(inst);
+                break;                // 1001 0100 0001 1001 | EIJMP
+            case 0x95D8:
+                elpm(inst);
+                break;                 // 1001 0101 1101 1000 | ELPM
+            case 0x95F8:
+                espm(inst);
+                break;                 // 1001 0101 1111 1000 | ESPM 
+            case 0x9509:
+                icall(inst);
+                break;                // 1001 0101 0000 1001 | ICALL
+            case 0x9409:
+                ijmp(inst);
+                break;                 // 1001 0100 0000 1001 | IJMP 
+            case 0x95C8:
+                lpm(inst);
+                break;                  // 1001 0101 1100 1000 | LPM
+            case 0x0000:
+                nop(inst);
+                break;                  // 0000 0000 0000 0000 | NOP 
+            case 0x9508:
+                ret(inst);
+                break;                  // 1001 0101 0000 1000 | RET
+            case 0x9518:
+                reti(inst);
+                break;                 // 1001 0101 0001 1000 | RETI 
+            case 0x9588:
+                sleep(inst);
+                break;                // 1001 0101 1000 1000 | SLEEP
+            case 0x95E8:
+                spm(inst);
+                break;                  // 1001 0101 1110 1000 | SPM 
+            case 0x95A8:
+                wdr(inst);
+                break;                  // 1001 0101 1010 1000 | WDR
+            case 0x9598:
+                _break(inst);
+                break;               // 1001 0101 1001 1000 | BREAK 
+
+            default:
+                // Cat 1
+                // ---- --rd dddd rrrr
+                int innerMaskInt = maskInt & 0xfc00;
+                switch (innerMaskInt) {
+                    case 0x1c00:
+                        adc(inst);
+                        break OUTER;          // 0001 11rd dddd rrrr | ADC or ROL
+                    case 0x0C00:
+                        add(inst);
+                        break OUTER;          // 0000 11rd dddd rrrr | ADD or LSL
+                    case 0x2000:
+                        and(inst);
+                        break OUTER;          // 0010 00rd dddd rrrr | AND or TST 
+                    case 0x1400:
+                        cp(inst);
+                        break OUTER;           // 0001 01rd dddd rrrr | CP 
+                    case 0x0400:
+                        cpc(inst);
+                        break OUTER;          // 0000 01rd dddd rrrr | CPC 
+                    case 0x1000:
+                        cpse(inst);
+                        break OUTER;         // 0001 00rd dddd rrrr | CPSE 
+                    case 0x2400:
+                        eor(inst);
+                        break OUTER;          // 0010 01rd dddd rrrr | EOR or CLR 
+                    case 0x2C00:
+                        mov(inst);
+                        break OUTER;          // 0010 11rd dddd rrrr | MOV 
+                    case 0x9C00:
+                        mul(inst);
+                        break OUTER;          // 1001 11rd dddd rrrr | MUL 
+                    case 0x2800:
+                        or(inst);
+                        break OUTER;           // 0010 10rd dddd rrrr | OR 
+                    case 0x0800:
+                        sbc(inst);
+                        break OUTER;          // 0000 10rd dddd rrrr | SBC 
+                    case 0x1800:
+                        sub(inst);
+                        break OUTER;          // 0001 10rd dddd rrrr | SUB 
+                }
+                throw new Error("Invalid instruction: " + inst);
+        }
+    }
+    private void eicall(short inst) {   
+    }
+    private void eijmp(short inst) {
+    }
+    private void elpm(short inst) {
+    }
+    private void espm(short inst) {
+    }
+    private void icall(short inst) {
+    }
+    private void ijmp(short inst) {
+    }
+    private void lpm(short inst) {
+        short load = memProg.read((short) (readZ() / 2)); // Z is a byte address, progmem is short addressed
+        memData.write(0, (byte) ((readZ() & 0x1) == 1 ? (load >>> 8) : load));
+        CYCLES += 3;
+    }
+    private void nop(short inst) {
+        CYCLES += 1;
+    }
+    private void ret(short inst) {
+        incSP();
+        PC = readSP();
+        CYCLES += 4;
+    }
+    private void reti(short inst) {
+        ret(inst);
+        StatusRegister.I.write(true, memData);
+    }
+    private void sleep(short inst) {
+    }
+    private void spm(short inst) {
+        short r0r1 = readShortData(0, 1);
+        short z = readZ();
+        memProg.write(z, r0r1);
+    }
+    private void wdr(short inst) {
+    }
+    private void _break(short inst) {
+    }
+    private static int getRrAddrCat1(short inst) {
+        return ((inst & 0x200) >>> 5) | 0xf & inst;
+    }
+    private static int getRdAddrCat1(short inst) {
+        return (inst >>> 4) & 0x1f;
+    }
+    private static boolean isAddCarryBit(int rd, int rr, int result, int bit) {
+        return (((rd & rr) | (rr & ~result) | (~result & rd)) & (1 << bit)) != 0;
+    }
+    private static boolean isAddOverflow(int rd, int rr, int result) {
+        return (((rd & rr & ~result) | (~rd & ~rr & result)) & 0x80) != 0;
+    }
+    private static boolean isSubCarryBit(int rd, int rr, int result, int bit) {
+        return (((~rd & rr) | (rr & result) | (result & ~rd)) & (1 << bit)) != 0;
+    }
+    private static boolean isSubOverflow(int rd, int rr, int result) {
+        return (((rd & ~rr & ~result) | (~rd & rr & result)) & 0x80) != 0;
+    }
+    private void adc(short inst) {
+        int r = getRrAddrCat1(inst);
+        int d = getRdAddrCat1(inst);
+        int rd = memData.read(d);
+        int rr = memData.read(r);
+        int result = rd + rr + boolToInt(StatusRegister.C.read(memData));
+        StatusRegister.H.write(isAddCarryBit(rd, rr, result, 3), memData);
+        StatusRegister.V.write(isAddOverflow(rd, rr, result), memData);
+        StatusRegister.N.write((result & 0x80) != 0, memData);
+        StatusRegister.S.write(StatusRegister.N.read(memData) ^ StatusRegister.V.read(memData), memData);
+        StatusRegister.Z.write((result & 0xff) == 0, memData);
+        StatusRegister.C.write(isAddCarryBit(rd, rr, result, 7), memData);
+        memData.write(d, (byte) result);
+        CYCLES += 1;
+    }
+    private void add(short inst) {
+        int r = getRrAddrCat1(inst);
+        int d = getRdAddrCat1(inst);
+        int rd = memData.read(d);
+        int rr = memData.read(r);
+        int result = rd + rr;
+        StatusRegister.H.write(isAddCarryBit(rd, rr, result, 3), memData);
+        StatusRegister.V.write(isAddOverflow(rd, rr, result), memData);
+        StatusRegister.N.write((result & 0x80) != 0, memData);
+        StatusRegister.S.write(StatusRegister.N.read(memData) ^ StatusRegister.V.read(memData), memData);
+        StatusRegister.Z.write((result & 0xff) == 0, memData);
+        StatusRegister.C.write(isAddCarryBit(rd, rr, result, 7), memData);
+        memData.write(d, (byte) result);
+        CYCLES += 1;
+    }
+    private void and(short inst) {
+        int r = getRrAddrCat1(inst);
+        int d = getRdAddrCat1(inst);
+        int rd = memData.read(d);
+        int rr = memData.read(r);
+        int result = rd & rr;
+        StatusRegister.V.write(false, memData);
+        StatusRegister.N.write((result & 0x80) != 0, memData);
+        StatusRegister.S.write(StatusRegister.N.read(memData) ^ StatusRegister.V.read(memData), memData);
+        StatusRegister.Z.write((result & 0xff) == 0, memData);
+        memData.write(d, (byte) result);
+        CYCLES += 1;
+    }
+    private void cp(short inst) {
+        int r = getRrAddrCat1(inst);
+        int d = getRdAddrCat1(inst);
+        int rd = memData.read(d);
+        int rr = memData.read(r);
+        int result = rd - rr;
+        StatusRegister.H.write(isSubCarryBit(rd, rr, result, 3), memData);
+        StatusRegister.V.write(isSubOverflow(rd, rr, result), memData);
+        StatusRegister.N.write((result & 0x80) != 0, memData);
+        StatusRegister.S.write(StatusRegister.N.read(memData) ^ StatusRegister.V.read(memData), memData);
+        StatusRegister.Z.write((result & 0xff) == 0, memData);
+        StatusRegister.C.write(isSubCarryBit(rd, rr, result, 7), memData);
+        memData.write(d, (byte) result);
+        CYCLES += 1;
+    }
+    private void cpc(short inst) {
+        int r = getRrAddrCat1(inst);
+        int d = getRdAddrCat1(inst);
+        int rd = memData.read(d);
+        int rr = memData.read(r);
+        int result = rd - rr - boolToInt(StatusRegister.C.read(memData));
+        StatusRegister.H.write(isSubCarryBit(rd, rr, result, 3), memData);
+        StatusRegister.V.write(isSubOverflow(rd, rr, result), memData);
+        StatusRegister.N.write((result & 0x80) != 0, memData);
+        StatusRegister.S.write(StatusRegister.N.read(memData) ^ StatusRegister.V.read(memData), memData);
+        StatusRegister.Z.write((result & 0xff) == 0 ? StatusRegister.Z.read(memData) : false, memData);
+        StatusRegister.C.write(isSubCarryBit(rd, rr, result, 7), memData);
+        memData.write(d, (byte) result);
+        CYCLES += 1;
+    }
+    private void cpse(short inst) {
+    }
+    private void eor(short inst) {
+        int r = getRrAddrCat1(inst);
+        int d = getRdAddrCat1(inst);
+        int rd = memData.read(d);
+        int rr = memData.read(r);
+        int result = rd ^ rr;
+        StatusRegister.V.write(false, memData);
+        StatusRegister.N.write((result & 0x80) != 0, memData);
+        StatusRegister.S.write(StatusRegister.N.read(memData) ^ StatusRegister.V.read(memData), memData);
+        StatusRegister.Z.write((result & 0xff) == 0, memData);
+        memData.write(d, (byte) result);
+        CYCLES += 1;
+    }
+    private void mov(short inst) {
+        int r = getRrAddrCat1(inst);
+        int d = getRdAddrCat1(inst);
+        int rr = memData.read(r);
+        memData.write(d, (byte) rr);
+        CYCLES += 1;
+    }
+    private void mul(short inst) {
+        int r = getRrAddrCat1(inst);
+        int d = getRdAddrCat1(inst);
+        int rr = (0xff & memData.read(r));
+        int rd = (0xff & memData.read(d));
+        int result = rr * rd;
+        StatusRegister.C.write((result & 0x8000) != 0, memData);
+        StatusRegister.Z.write((result & 0xff) == 0, memData);
+        writeShortData(0, 1, (short) result);
+        CYCLES += 2;
+    }
+    private void or(short inst) {
+        int r = getRrAddrCat1(inst);
+        int d = getRdAddrCat1(inst);
+        int rd = memData.read(d);
+        int rr = memData.read(r);
+        int result = rr | rd;
+        StatusRegister.V.write(false, memData);
+        StatusRegister.N.write((result & 0x80) != 0, memData);
+        StatusRegister.S.write(StatusRegister.N.read(memData) ^ StatusRegister.V.read(memData), memData);
+        StatusRegister.Z.write((result & 0xff) == 0, memData);
+        memData.write(rd, (byte) result);
+    }
+    private void sbc(short inst) {
+    }
+    private void sub(short inst) {
+    }
+    public short readSP() {
+        return (short) (0x07ff & readShortData(SPL, SPH));
+    }
+    public void writeSP(short sp) {
+        writeShortData(SPL, SPH, (short) (0x07ff & sp));
+    }
+    public void incSP() {
+        writeSP((short) (readSP() + 2));
+    }
+    public void decSP() {
+        writeSP((short) (readSP() - 2));
+    }
+    public short readX() {
+        return readShortData(X_LOW, X_HIGH);
+    }
+    public void writeX(short x) {
+        writeShortData(X_LOW, X_HIGH, x);
+    }
+    public short readY() {
+        return readShortData(Y_LOW, Y_HIGH);
+    }
+    public void writeY(short y) {
+        writeShortData(Y_LOW, Y_HIGH, y);
+    }
+    public short readZ() {
+        return readShortData(Z_LOW, Z_HIGH);
+    }
+    public void writeZ(short z) {
+        writeShortData(Z_LOW, Z_HIGH, z);
+    }
+    private short readShortData(int lowAddr, int highAddr) {
+        return readShortByteArray(memData.readAll(), lowAddr, highAddr);
+    }
+    private void writeShortData(int lowAddr, int highAddr, short x) {
+        writeShortByteArray(memData.readAll(), lowAddr, highAddr, x);
+    }
+    private short readShortByteArray(byte[] byteArray, int lowAddr, int highAddr) {
+        return (short) (byteToInt(byteArray[highAddr]) << 8 | byteToInt(byteArray[lowAddr]));
+    }
+    private void writeShortByteArray(byte[] byteArray, int lowAddr, int highAddr, short x) {
+        byteArray[lowAddr] = (byte) (LByteMask & x);
+        byteArray[highAddr] = (byte) ((HByteMask & x) >>> 8);
+    }
+    private static int byteToInt(byte b) {
+        return (LByteMask & (int) b);
+    }
+    private static int boolToInt(boolean b) {
+        return b ? 1 : 0;
+    }
+    public static void main(String[] args) {
+        Processor p = new Processor();
+        int Rd = 0xf;
+        int Rr = 0x9;
+        p.memData.write(Rd, (byte) 32);
+        p.memData.write(Rr, (byte) 15);
+        int inst = 0x0c00 | ((Rr & 0x10) << 5) | (Rd << 4) | (Rr & 0xf);
+        System.out.printf("0x%x\n", inst);
+        p.invokeInst((short) inst);
+        int expected = 32 + 15;
+        System.out.println("stuff: " + (expected == p.memData.read(Rd)));
+    }
+}

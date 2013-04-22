@@ -1,0 +1,14 @@
+package emulator;
+
+public abstract class AbstractCommand {
+	public long[] splitBytes(long t) {
+		long[] ret = new long[4];
+		ret[0] = (t >> 12);
+		ret[1] = (t-ret[0])>>8;
+		ret[2] = (t-ret[0]-ret[1])>>4;
+		ret[3] = (t-ret[0]-ret[1]-ret[2]);
+		return ret;
+	}
+	
+	public abstract void run(byte[] mem, byte[] prom, byte ptr, long opcode);
+}

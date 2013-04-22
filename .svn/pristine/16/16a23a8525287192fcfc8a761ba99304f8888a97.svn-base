@@ -1,0 +1,23 @@
+package emulator.command;
+
+import java.util.HashMap;
+
+public class CommandSet {
+    private static HashMap<Integer, CommandEnum> commandMap = new HashMap<>();
+    private static boolean listBuilt = false;
+    public static void buildList() {
+        for (CommandEnum e : CommandEnum.values())
+            commandMap.put(e.getOpcode(), e);
+        listBuilt = true;
+    }
+    public static Command getCmd(short instr) {
+        if (!listBuilt) {
+            System.out.println("***WARN: You did not call CommandSet.buildList()! First operation will be slow.");
+            CommandSet.buildList();
+        }
+        int maskInt = (0xffff & instr);
+        return commandMap.get(maskInt).getCom();
+    }
+    private CommandSet() {
+    }
+}

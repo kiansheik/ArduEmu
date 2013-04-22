@@ -1,0 +1,15 @@
+package emulator;
+
+import java.util.HashMap;
+
+public class CommandSet {
+	HashMap<Long, CommandEnum> commandMap = new HashMap<>();
+	
+	public CommandSet() {
+		for(CommandEnum e : CommandEnum.values())
+			commandMap.put(e.getOpcode(), e);
+	}
+	
+	public CommandEnum getCmd(long cmd) {return commandMap.get(cmd);}
+}
+

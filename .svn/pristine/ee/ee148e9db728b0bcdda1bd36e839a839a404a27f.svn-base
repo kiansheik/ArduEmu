@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project-private xmlns="http://www.netbeans.org/ns/project-private/1">
+    <editor-bookmarks xmlns="http://www.netbeans.org/ns/editor-bookmarks/2" lastBookmarkId="0"/>
+    <open-files xmlns="http://www.netbeans.org/ns/projectui-open-files/1">
+        <file>file:/C:/Users/Yousuf/Desktop/arduemu/trunk/src/arduemu/ArduEmu.java</file>
+        <file>file:/C:/Users/Yousuf/Desktop/arduemu/trunk/src/poolsync/ObjectPool.java</file>
+        <file>file:/C:/Users/Yousuf/Desktop/arduemu/trunk/src/poolsync/PoolInput.java</file>
+        <file>file:/C:/Users/Yousuf/Desktop/arduemu/trunk/src/poolsync/PoolObject.java</file>
+        <file>file:/C:/Users/Yousuf/Desktop/arduemu/trunk/src/poolsync/PoolOutput.java</file>
+        <file>file:/C:/Users/Yousuf/Desktop/arduemu/trunk/src/emulator/AbstractCommand.java</file>
+        <file>file:/C:/Users/Yousuf/Desktop/arduemu/trunk/src/emulator/CommandEnum.java</file>
+        <file>file:/C:/Users/Yousuf/Desktop/arduemu/trunk/src/emulator/CommandSet.java</file>
+        <file>file:/C:/Users/Yousuf/Desktop/arduemu/trunk/src/emulator/Emulator.java</file>
+        <file>file:/C:/Users/Yousuf/Desktop/arduemu/trunk/src/emulator/Opcodes</file>
+    </open-files>
+</project-private>

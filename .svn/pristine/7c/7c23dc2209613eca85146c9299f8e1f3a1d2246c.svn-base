@@ -1,0 +1,9 @@
+package arduemu;
+
+import emulator.command.CommandSet;
+
+public class ArduEmu {
+    public static void main(String[] args) {
+        CommandSet.buildList();
+    }
+}

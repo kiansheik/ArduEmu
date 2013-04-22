@@ -1,0 +1,24 @@
+package emulator.command;
+
+import emulator.memory.MemData;
+import emulator.memory.MemEEProm;
+import emulator.memory.MemProg;
+
+public enum CommandEnum {
+	EICALL (0x9519, new ComEICALL());
+	
+	private final int opcode;
+	private final Command com;
+	
+	public final int getOpcode() {return opcode;}
+	public final Command getCom() {return com;}
+	
+	CommandEnum(int instr, Command c) {
+		this.opcode = instr; this.com = c;
+	}
+}
+
+class ComEICALL extends Command {
+	@Override
+	public void run(MemData memData, MemProg memProg, MemEEProm memEEProm, short instr) {}
+}

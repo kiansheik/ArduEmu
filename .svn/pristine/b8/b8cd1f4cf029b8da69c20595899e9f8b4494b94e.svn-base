@@ -1,0 +1,9 @@
+package arduemu;
+
+public class ArduEmu {
+	public static void main(String[] args) {
+		byte[] mem = new byte[0xffff];
+		mem[0x01e0] = 0x52;
+		mem[0x01e1] = 0x53;
+	}
+}

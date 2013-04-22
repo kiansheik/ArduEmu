@@ -1,0 +1,6 @@
+package poolsync;
+
+public abstract class PoolInput {
+	public abstract String nextInput();
+	public abstract boolean hasNextInput();
+}
