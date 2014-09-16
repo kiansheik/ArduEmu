@@ -1,9 +1,0 @@
-package emulator.memory;
-
-public class MemProg {
-	private final short[] mem = new short[0x800];
-	
-	public short read(short addr) {return mem[addr];}
-
-	public void write(short addr, short data) {mem[addr] = data;}
-}

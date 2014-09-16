@@ -1,8 +1,0 @@
-We propose a solution wherein up to 35 arduino processors may be simulated on a Raspberry Pi microcomputer board. Java is picked as the programming language, and calls to System are entirely avoided, as this code must be compatible with any platform capable of running the Java Virtual Machine.
-
-The processor is emulated using the compiled machine code output by the standard Arduino programming environment. The memory space in the Ardiuno is simulated using a byte array. The machine code is then parsed instruction-by-instruction, and the memory is modified by a virtual processor. Certain instructions may be intercepted by the emulator; e.g. any pin outputs or serial outputs will not actually connect to pins. Instead, the emulator has the capability to deal with those calls responsively. 
-
-To reduce the high cost of emulation, each Emulator object is recyclable. We implement the object pool in our design to allow for dynamic allocation and reallocation of emulators to specific projects and files. The inputs and outputs to each emulator are disconnected; ergo, one can simply clean the emulator, then attach new I/O classes. The outputs of each emulation session are logged and recorded; these can later be consumed and dumped. Then, they are destroyed.
-
-
-
